@@ -1,19 +1,16 @@
+# Your main application file
 from flask import Flask
-from svgpathtools import svg2paths
+from path_analysis import analyze_paths
+from group_messages import generate_group_messages
 
 app = Flask(__name__)
 
 
 @app.route('/')
 def hello():
-    # Load the SVG and extract the paths
-    paths, _ = svg2paths('images/tridentFull/trident_0.svg')
-
-    # For demonstration purposes, let's say you want to return the first path (if exists)
-    if paths:
-        return f"The first path is: {paths[0]}"
-    else:
-        return "No paths found in the SVG."
+    analysis_results = analyze_paths('images/tridentFull/trident_167.svg')
+    messages = generate_group_messages(analysis_results)
+    return "<br>".join(messages)
 
 
 if __name__ == '__main__':
