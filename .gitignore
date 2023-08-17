@@ -6,11 +6,23 @@ __pycache__/
 
 # C extensions
 *.so
+*.png
+*.json
 
 # Distribution / packaging
 .Python
 build/
 develop-eggs/
+tridentFull_pngs/
+tridentFull/
+info_outputs/
+outputUniform3AA/
+outputUniform4/
+outputUniform3/
+outputUniform2/
+outputUniform/
+outputUniform5/
+output4/
 dist/
 downloads/
 eggs/
