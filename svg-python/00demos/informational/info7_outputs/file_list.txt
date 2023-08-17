@@ -1,0 +1,2 @@
+Filename: carpet1_c_920.png, Temperature: 920°C
+Filename: carpet2_c_820.png, Temperature: 820°C
