@@ -1,3 +1,4 @@
+from PIL import ImageOps
 import os
 import cv2
 import numpy as np
@@ -5,6 +6,7 @@ import re
 from skimage import feature  # for LBP
 from PIL import Image
 import matplotlib.pyplot as plt
+import shutil
 
 # Print start message
 print("Starting image analysis...")
@@ -14,9 +16,12 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGES_DIR = os.path.join(CURRENT_DIR, "../../../images/mazes")
 OUTPUT_DIR_EXTRAS = os.path.join(CURRENT_DIR, "adjacents_outputs_extras")
 
-# Ensure the output directory exists
-if not os.path.exists(OUTPUT_DIR_EXTRAS):
-    os.makedirs(OUTPUT_DIR_EXTRAS)
+# Delete the existing output folder if it exists
+if os.path.exists(OUTPUT_DIR_EXTRAS):
+    shutil.rmtree(OUTPUT_DIR_EXTRAS)
+
+# Create a new empty output folder
+os.makedirs(OUTPUT_DIR_EXTRAS)
 
 # Regular expression pattern to match the temperature
 temp_pattern = re.compile(r"_c_(\d+)\.png$")
@@ -58,6 +63,8 @@ def plot_cluster_size_histogram(clusters, output_dir, filename_prefix):
 
 
 # Function to save clusters as images
+
+
 def save_clusters_as_images(clusters, output_dir, filename_prefix, img_shape):
     # Create a subfolder for each image's clusters
     subfolder = os.path.join(output_dir, f"{filename_prefix}_clusters")
@@ -65,9 +72,11 @@ def save_clusters_as_images(clusters, output_dir, filename_prefix, img_shape):
         os.makedirs(subfolder)
 
     # Initialize an empty summary image
-    summary_img = np.zeros(img_shape, dtype=np.uint8)
+    summary_img = np.zeros((img_shape[0], img_shape[1], 3), dtype=np.uint8)
+    summary_img_alpha = np.zeros(
+        (img_shape[0], img_shape[1], 4), dtype=np.uint8)
 
-    for idx, (color, cluster) in enumerate(clusters):
+    for idx, (_, cluster) in enumerate(clusters):
         # Only save clusters of a significant size (e.g., more than 10 pixels)
         if len(cluster) > 10:
             # Initialize an empty image
@@ -75,24 +84,34 @@ def save_clusters_as_images(clusters, output_dir, filename_prefix, img_shape):
 
             # Fill in the cluster pixels
             for x, y in cluster:
-                img[x, y] = color
-
-            # Add this cluster to the summary image
-            summary_img = np.maximum(summary_img, img)
+                img[x, y] = 255  # Set to white
+                summary_img[x, y] = [0, 0, 255]  # Set to red
+                summary_img_alpha[x, y] = [
+                    0, 0, 255, 255]  # Set to red with alpha
 
             # Save the individual cluster image
             output_path = os.path.join(
                 subfolder, f"{filename_prefix}_cluster_{idx}.png")
-            # 'L' indicates it's a grayscale image
             img_pil = Image.fromarray(img, 'L')
             img_pil.save(output_path)
 
     # Save the summary image
     summary_path = os.path.join(
         output_dir, f"{filename_prefix}_summary_try2.png")
-    summary_img_pil = Image.fromarray(summary_img, 'L')
+    summary_img_pil = Image.fromarray(summary_img, 'RGB')
     summary_img_pil.save(summary_path)
 
+    # Create and save the overlay image
+    original_img = Image.open(os.path.join(
+        IMAGES_DIR, filename_prefix)).convert('RGBA')
+    overlay_img = Image.fromarray(summary_img_alpha, 'RGBA')
+    overlay_img = ImageOps.fit(
+        overlay_img, original_img.size, method=0, bleed=0.0, centering=(0.5, 0.5))
+    combined_img = Image.alpha_composite(original_img, overlay_img)
+
+    overlay_path = os.path.join(
+        output_dir, f"{filename_prefix}_summary_try2_overlay.png")
+    combined_img.save(overlay_path)
 
 # Function to save LBP as an image
 
@@ -117,7 +136,7 @@ def save_data_as_text(clusters, lbp_data, output_dir, filename_prefix):
 
 # Function to find pixel clusters
 
-def find_clusters(image):
+def find_clusters(image, color_tolerance=5):
     visited = set()
     clusters = []
 
@@ -126,7 +145,7 @@ def find_clusters(image):
             return
         if x < 0 or y < 0 or x >= image.shape[0] or y >= image.shape[1]:
             return
-        if image[x, y] != color:
+        if abs(image[x, y] - color) > color_tolerance:
             return
 
         visited.add((x, y))
@@ -148,6 +167,7 @@ def find_clusters(image):
 
     return clusters
 
+
 # Function to calculate LBP
 
 
@@ -159,6 +179,8 @@ def local_binary_pattern(image, P=8, R=1):
 all_pixel_clusters = {}
 all_lbp_data = {}
 temperatures = []
+cluster_count_per_image = {}
+
 # Loop over each image file in the IMAGES_DIR
 for img_file in os.listdir(IMAGES_DIR):
     print(f"Processing {img_file}...")
@@ -170,7 +192,7 @@ for img_file in os.listdir(IMAGES_DIR):
         temperatures.append(temperature)
 
         # Find clusters of adjacent pixels
-        clusters = find_clusters(image)
+        clusters = find_clusters(image, color_tolerance=10)
         all_pixel_clusters[temperature] = clusters
 
         # Plot histogram of cluster sizes
