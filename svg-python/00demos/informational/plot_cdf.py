@@ -31,7 +31,7 @@ def plot_pixel_intensity_cdf(all_pixel_data, output_directory, temperatures_str)
     ax.set_title("Pixel Intensity Cumulative Distribution by Temperature")
     plt.tight_layout()
 
-    output_cdf_file = f"{output_directory}/pixel_intensity_cdf_{temperatures_str}.png"
+    output_cdf_file = f"{output_directory}/pixel_intensity_cdf2_{temperatures_str}.png"
     plt.savefig(output_cdf_file, bbox_inches='tight')
     plt.close()
 

@@ -10,7 +10,7 @@ from advanced_plotting_v2 import advanced_pixel_plotting_v2
 # Paths
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGES_DIR = os.path.join(CURRENT_DIR, "../../images/mazes")
-OUTPUT_DIR = os.path.join(CURRENT_DIR, "info8_outputs")
+OUTPUT_DIR = os.path.join(CURRENT_DIR, "info9_outputs")
 
 # Ensure the output directory exists
 if not os.path.exists(OUTPUT_DIR):
@@ -67,37 +67,6 @@ plt.savefig(output_graph_file, bbox_inches='tight',
             facecolor=fig.get_facecolor(), transparent=False)
 
 print(f"Graph saved to {output_graph_file}")
-
-# Save the graph again for overlaying but with transparent background
-# plt.savefig(output_graph_file.replace('.png', '_transparent.png'),
-#             bbox_inches='tight', transparent=True)
-
-# graph_image = cv2.imread(output_graph_file.replace(
-#     '.png', '_transparent.png'), cv2.IMREAD_UNCHANGED)
-
-# for img_file in os.listdir(IMAGES_DIR):
-#     file_path = os.path.join(IMAGES_DIR, img_file)
-#     image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-#     colored_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-#     resized_graph = cv2.resize(
-#         graph_image, (colored_image.shape[1], colored_image.shape[0]))
-#     if resized_graph.shape[2] == 4:
-#         alpha_channel = resized_graph[:, :, 3] / 255.0
-#         rgb_channels = resized_graph[:, :, :3]
-#         colored_image = (1 - alpha_channel).reshape(alpha_channel.shape[0], alpha_channel.shape[1], 1) * colored_image + alpha_channel.reshape(
-#             alpha_channel.shape[0], alpha_channel.shape[1], 1) * rgb_channels
-#     else:
-#         colored_image = cv2.addWeighted(
-#             colored_image, 0.6, resized_graph, 0.4, 0)
-
-#     text_position = (10, colored_image.shape[0] - 10)
-#     cv2.putText(colored_image, img_file, text_position,
-#                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, lineType=cv2.LINE_AA)
-#     overlayed_image_file = os.path.join(OUTPUT_DIR, f"overlay_{img_file}")
-#     cv2.imwrite(overlayed_image_file, colored_image)
-#     print(f"Overlay image saved to {overlayed_image_file}")
-
-# Define a function to add images below the chart
 
 
 def add_images_below_chart(fig, image_paths):
