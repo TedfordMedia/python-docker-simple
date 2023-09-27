@@ -7,6 +7,7 @@ from skimage import feature  # for LBP
 from PIL import Image
 import matplotlib.pyplot as plt
 import shutil
+import matplotlib.cm as cm
 
 # Print start message
 print("Starting image analysis...")
@@ -117,8 +118,10 @@ def save_clusters_as_images(clusters, output_dir, filename_prefix, img_shape):
 
 
 def save_lbp_as_image(lbp_image, output_dir, filename_prefix):
+    lbp_image = cm.jet(lbp_image / lbp_image.max())  # Use the jet color map
+    lbp_image = (lbp_image[:, :, :3] * 255).astype(np.uint8)
     output_path = os.path.join(output_dir, f"{filename_prefix}_lbp.png")
-    Image.fromarray(lbp_image.astype('uint8')).save(output_path)
+    Image.fromarray(lbp_image, 'RGB').save(output_path)
 
 
 # Function to save clusters and LBP as text files
@@ -168,6 +171,20 @@ def find_clusters(image, color_tolerance=5):
     return clusters
 
 
+def plot_cluster_count(cluster_count, output_dir):
+    image_names = list(cluster_count.keys())
+    num_clusters = list(cluster_count.values())
+
+    plt.bar(image_names, num_clusters)
+    plt.xlabel('Image Name')
+    plt.ylabel('Number of Clusters')
+    plt.title('Number of Clusters per Image')
+    plt.xticks(rotation=90)  # Rotate x labels for better visibility
+
+    output_path = os.path.join(output_dir, "cluster_count_per_image.png")
+    plt.savefig(output_path)
+    plt.close()
+
 # Function to calculate LBP
 
 
@@ -194,7 +211,7 @@ for img_file in os.listdir(IMAGES_DIR):
         # Find clusters of adjacent pixels
         clusters = find_clusters(image, color_tolerance=10)
         all_pixel_clusters[temperature] = clusters
-
+        cluster_count_per_image[img_file] = len(clusters)
         # Plot histogram of cluster sizes
         plot_cluster_size_histogram(clusters, OUTPUT_DIR_EXTRAS, img_file)
 
@@ -216,5 +233,7 @@ for img_file in os.listdir(IMAGES_DIR):
         # Save clusters and LBP data as text files
         save_data_as_text(clusters, lbp_image,
                           OUTPUT_DIR_EXTRAS, f"{img_file}")
+
+plot_cluster_count(cluster_count_per_image, OUTPUT_DIR_EXTRAS)
 
 print("Image analysis and data saving complete.")
