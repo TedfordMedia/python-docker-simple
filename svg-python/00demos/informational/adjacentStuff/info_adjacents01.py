@@ -8,8 +8,6 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import shutil
 import matplotlib.cm as cm
-import sys
-sys.setrecursionlimit(10000)
 
 # Print start message
 print("Starting image analysis...")
@@ -165,31 +163,28 @@ def find_clusters(image, color_tolerance=5):
     visited = set()
     clusters = []
 
-    def dfs_iterative(start_x, start_y, color):
-        stack = [(start_x, start_y)]
-        cluster = []
+    def dfs(x, y, color, cluster):
+        if (x, y) in visited:
+            return
+        if x < 0 or y < 0 or x >= image.shape[0] or y >= image.shape[1]:
+            return
+        if abs(image[x, y] - color) > color_tolerance:
+            return
 
-        while stack:
-            x, y = stack.pop()
-            if (x, y) in visited:
-                continue
-            if x < 0 or y < 0 or x >= image.shape[0] or y >= image.shape[1]:
-                continue
-            if abs(image[x, y] - color) > color_tolerance:
-                continue
+        visited.add((x, y))
+        cluster.append((x, y))
 
-            visited.add((x, y))
-            cluster.append((x, y))
-
-            stack.extend([(x+1, y), (x-1, y), (x, y+1), (x, y-1)])
-
-        return cluster
+        dfs(x+1, y, color, cluster)
+        dfs(x-1, y, color, cluster)
+        dfs(x, y+1, color, cluster)
+        dfs(x, y-1, color, cluster)
 
     for x in range(image.shape[0]):
         for y in range(image.shape[1]):
             if (x, y) not in visited:
                 color = image[x, y]
-                cluster = dfs_iterative(x, y, color)
+                cluster = []
+                dfs(x, y, color, cluster)
                 if cluster:
                     clusters.append((color, cluster))
 
@@ -256,8 +251,8 @@ cluster_count_per_image = {}
 for img_file in os.listdir(IMAGES_DIR):
     print(f"Processing {img_file}...")
     file_path = os.path.join(IMAGES_DIR, img_file)
-    # image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-    image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE).astype(np.int64)
+    image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+
     match = temp_pattern.search(img_file)
     if match:
         temperature = match.group(1)
