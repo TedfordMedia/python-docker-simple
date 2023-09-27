@@ -56,6 +56,8 @@ def advanced_pixel_plotting_v2(all_pixel_data, output_directory, temperatures_st
     ax.set_xlabel("Temperature")
     ax.set_ylabel("Pixel Intensity")
     ax.set_title("Boxplot of Pixel Intensities by Temperature")
+    ax.set_yticks([0, 250])  # Set y-ticks at 0 and 250
+    ax.set_yticklabels(['Dark', 'Light'])
     plt.tight_layout()
     output_boxplot_file = f"{output_directory}/pixel_intensity_boxplot_{temperatures_str}.png"
     plt.savefig(output_boxplot_file, bbox_inches='tight')
@@ -68,7 +70,7 @@ def advanced_pixel_plotting_v2(all_pixel_data, output_directory, temperatures_st
         unique_pixels, counts, _ = data
         expanded_data = np.repeat(unique_pixels, counts)
         sns.kdeplot(expanded_data, label=f"{temperature}°C")
-    ax.set_xlabel("Pixel Intensity")
+    ax.set_xlabel("Pixel Shade")
     ax.set_ylabel("Density")
     ax.set_xticks([0, 255])
     ax.set_xticklabels(['Black', 'White'])
