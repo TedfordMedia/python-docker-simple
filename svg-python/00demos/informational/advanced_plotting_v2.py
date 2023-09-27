@@ -33,6 +33,8 @@ def advanced_pixel_plotting_v2(all_pixel_data, output_directory, temperatures_st
     ax.set_xlabel("Pixel Intensity")
     ax.set_ylabel("Temperature")
     ax.set_yticklabels(temp_labels)
+    ax.set_xticks([0, 255])
+    ax.set_xticklabels(['Black', 'White'])
     ax.set_title("Heatmap of Pixel Intensity Frequencies by Temperature")
     plt.tight_layout()
     output_heatmap_file = f"{output_directory}/pixel_intensity_heatmap_{temperatures_str}.png"
@@ -68,6 +70,8 @@ def advanced_pixel_plotting_v2(all_pixel_data, output_directory, temperatures_st
         sns.kdeplot(expanded_data, label=f"{temperature}°C")
     ax.set_xlabel("Pixel Intensity")
     ax.set_ylabel("Density")
+    ax.set_xticks([0, 255])
+    ax.set_xticklabels(['Black', 'White'])
     ax.set_title("Density Plot of Pixel Intensities by Temperature")
     plt.tight_layout()
     output_kde_file = f"{output_directory}/pixel_intensity_kde_{temperatures_str}.png"

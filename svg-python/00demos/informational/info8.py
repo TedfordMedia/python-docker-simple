@@ -10,7 +10,7 @@ from advanced_plotting_v2 import advanced_pixel_plotting_v2
 # Paths
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 IMAGES_DIR = os.path.join(CURRENT_DIR, "../../images/mazes")
-OUTPUT_DIR = os.path.join(CURRENT_DIR, "info7_outputs")
+OUTPUT_DIR = os.path.join(CURRENT_DIR, "info8_outputs")
 
 # Ensure the output directory exists
 if not os.path.exists(OUTPUT_DIR):
@@ -132,10 +132,11 @@ add_images_below_chart(fig, image_paths)
 
 # Chart settings
 ax[0].legend()
-ax[0].set_xlabel("Gray Shade")
+ax[0].set_xlabel("Pixel Shade")
 ax[0].set_ylabel("Pixel Count")
 ax[0].set_title("Pixel Shade Distribution by Temperature")
-
+ax[0].set_xticks([0, 255])
+ax[0].set_xticklabels(['Dark', 'Light'])
 
 # Save to PNG with white background
 fig.patch.set_facecolor('white')
