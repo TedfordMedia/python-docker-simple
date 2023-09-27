@@ -8,6 +8,8 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import shutil
 import matplotlib.cm as cm
+import sys
+sys.setrecursionlimit(90000)
 
 # Print start message
 print("Starting image analysis...")
@@ -41,6 +43,19 @@ def create_summary_image(clusters, img_shape, output_dir, filename_prefix):
     # Save the image
     output_path = os.path.join(output_dir, f"{filename_prefix}_summary.png")
     Image.fromarray(summary_img, 'L').save(output_path)
+
+
+def plot_lbp_histogram(lbp_image, output_dir, filename_prefix):
+    lbp_values, counts = np.unique(lbp_image.ravel(), return_counts=True)
+    plt.bar(lbp_values, counts, color='blue', edgecolor='black')
+    plt.xlabel('LBP Value')
+    plt.ylabel('Frequency')
+    plt.title('LBP Histogram')
+
+    output_path = os.path.join(
+        output_dir, f"{filename_prefix}_lbp_histogram.png")
+    plt.savefig(output_path)
+    plt.close()
 
 # Function to plot histogram of cluster sizes
 
@@ -260,22 +275,18 @@ for img_file in os.listdir(IMAGES_DIR):
 
         # Find clusters of adjacent pixels
         clusters = find_clusters(image, color_tolerance=10)
-        significant_clusters = [
-            cluster for cluster in clusters if len(cluster[1]) > 10]
+        significant_clusters = [cluster for cluster in clusters if len(cluster[1]) > 10]
 
         all_pixel_clusters[temperature] = significant_clusters
         cluster_count_per_image[img_file] = len(significant_clusters)
         # Plot histogram of cluster sizes
-        plot_cluster_size_histogram(
-            significant_clusters, OUTPUT_DIR_EXTRAS, img_file)
+        plot_cluster_size_histogram(significant_clusters, OUTPUT_DIR_EXTRAS, img_file)
 
         # Create and save a summary image containing all clusters
-        create_summary_image(clusters, image.shape,
-                             OUTPUT_DIR_EXTRAS, img_file)
+        create_summary_image(clusters, image.shape, OUTPUT_DIR_EXTRAS, img_file)
 
         # Save clusters as images
-        save_clusters_as_images(
-            clusters, OUTPUT_DIR_EXTRAS, f"{img_file}", image.shape)
+        save_clusters_as_images(clusters, OUTPUT_DIR_EXTRAS, f"{img_file}", image.shape)
 
         small_clusters = [c for c in clusters if len(c[1]) <= 10]
         print(f"Number of small clusters: {len(small_clusters)}")
@@ -287,13 +298,14 @@ for img_file in os.listdir(IMAGES_DIR):
         # Save LBP as an image
         save_lbp_as_image(lbp_image, OUTPUT_DIR_EXTRAS, f"{img_file}")
 
+        # Place the call to plot_lbp_histogram here
+        plot_lbp_histogram(lbp_image, OUTPUT_DIR_EXTRAS, f"{img_file}")
+
         # Save clusters and LBP data as text files
-        save_data_as_text(clusters, lbp_image,
-                          OUTPUT_DIR_EXTRAS, f"{img_file}")
+        save_data_as_text(clusters, lbp_image, OUTPUT_DIR_EXTRAS, f"{img_file}")
 
 plot_cluster_count(cluster_count_per_image, OUTPUT_DIR_EXTRAS)
 plot_number_of_clusters(cluster_count_per_image, OUTPUT_DIR_EXTRAS)
-plot_aggregated_pixel_count_in_clusters(
-    significant_clusters, OUTPUT_DIR_EXTRAS, img_file)
+plot_aggregated_pixel_count_in_clusters(significant_clusters, OUTPUT_DIR_EXTRAS, img_file)
 
 print("Image analysis and data saving complete.")
