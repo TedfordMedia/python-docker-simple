@@ -13,6 +13,7 @@ __pycache__/
 .Python
 older_and_previous/
 build/
+*outputs*
 develop-eggs/
 tridentFull_pngs/
 tridentFull/

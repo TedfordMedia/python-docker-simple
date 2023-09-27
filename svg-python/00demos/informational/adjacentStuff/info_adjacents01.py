@@ -8,6 +8,8 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import shutil
 import matplotlib.cm as cm
+import sys
+sys.setrecursionlimit(10000)
 
 # Print start message
 print("Starting image analysis...")
@@ -113,6 +115,9 @@ def save_clusters_as_images(clusters, output_dir, filename_prefix, img_shape):
     overlay_path = os.path.join(
         output_dir, f"{filename_prefix}_summary_try2_overlay.png")
     combined_img.save(overlay_path)
+    num_files = len(os.listdir(subfolder))
+    print(
+        f"Number of cluster files: {num_files}, Number of clusters: {len(clusters)}")
 
 # Function to save LBP as an image
 
@@ -122,6 +127,23 @@ def save_lbp_as_image(lbp_image, output_dir, filename_prefix):
     lbp_image = (lbp_image[:, :, :3] * 255).astype(np.uint8)
     output_path = os.path.join(output_dir, f"{filename_prefix}_lbp.png")
     Image.fromarray(lbp_image, 'RGB').save(output_path)
+
+
+def plot_number_of_clusters(cluster_count, output_dir):
+    image_names = list(cluster_count.keys())
+    num_clusters = list(cluster_count.values())
+
+    plt.figure(figsize=(10, 6))  # Set the figure size
+    plt.bar(image_names, num_clusters, color='green', edgecolor='black')
+    plt.xlabel('Image Name')
+    plt.ylabel('Number of Clusters (Files)')
+    plt.title('Number of Clusters (Files) Per Image')
+    plt.xticks(rotation=90)  # Rotate x labels for better visibility
+    plt.tight_layout()  # Adjust layout for better visibility
+
+    output_path = os.path.join(output_dir, "number_of_clusters_per_image.png")
+    plt.savefig(output_path)
+    plt.close()
 
 
 # Function to save clusters and LBP as text files
@@ -143,28 +165,31 @@ def find_clusters(image, color_tolerance=5):
     visited = set()
     clusters = []
 
-    def dfs(x, y, color, cluster):
-        if (x, y) in visited:
-            return
-        if x < 0 or y < 0 or x >= image.shape[0] or y >= image.shape[1]:
-            return
-        if abs(image[x, y] - color) > color_tolerance:
-            return
+    def dfs_iterative(start_x, start_y, color):
+        stack = [(start_x, start_y)]
+        cluster = []
 
-        visited.add((x, y))
-        cluster.append((x, y))
+        while stack:
+            x, y = stack.pop()
+            if (x, y) in visited:
+                continue
+            if x < 0 or y < 0 or x >= image.shape[0] or y >= image.shape[1]:
+                continue
+            if abs(image[x, y] - color) > color_tolerance:
+                continue
 
-        dfs(x+1, y, color, cluster)
-        dfs(x-1, y, color, cluster)
-        dfs(x, y+1, color, cluster)
-        dfs(x, y-1, color, cluster)
+            visited.add((x, y))
+            cluster.append((x, y))
+
+            stack.extend([(x+1, y), (x-1, y), (x, y+1), (x, y-1)])
+
+        return cluster
 
     for x in range(image.shape[0]):
         for y in range(image.shape[1]):
             if (x, y) not in visited:
                 color = image[x, y]
-                cluster = []
-                dfs(x, y, color, cluster)
+                cluster = dfs_iterative(x, y, color)
                 if cluster:
                     clusters.append((color, cluster))
 
@@ -185,6 +210,35 @@ def plot_cluster_count(cluster_count, output_dir):
     plt.savefig(output_path)
     plt.close()
 
+
+def plot_aggregated_pixel_count_in_clusters(clusters, output_dir, filename_prefix, bin_size=10):
+    cluster_sizes = [len(cluster) for _, cluster in clusters]
+    max_size = max(cluster_sizes)
+
+    # Create bins
+    bins = list(range(0, max_size + bin_size, bin_size))
+
+    # Initialize the bin counts to zero
+    bin_counts = [0] * len(bins)
+
+    # Populate the bin counts
+    for size in cluster_sizes:
+        index = size // bin_size
+        bin_counts[index] += 1
+
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(bins, bin_counts, marker='o')
+    plt.xlabel('Cluster Size')
+    plt.ylabel('Number of Clusters')
+    plt.title(f'Aggregated Pixel Count in Clusters for {filename_prefix}')
+
+    # Save the plot
+    output_path = os.path.join(
+        output_dir, f"{filename_prefix}_aggregated_pixel_count_in_clusters.png")
+    plt.savefig(output_path)
+    plt.close()
+
 # Function to calculate LBP
 
 
@@ -202,7 +256,8 @@ cluster_count_per_image = {}
 for img_file in os.listdir(IMAGES_DIR):
     print(f"Processing {img_file}...")
     file_path = os.path.join(IMAGES_DIR, img_file)
-    image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+    # image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+    image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE).astype(np.int64)
     match = temp_pattern.search(img_file)
     if match:
         temperature = match.group(1)
@@ -210,10 +265,14 @@ for img_file in os.listdir(IMAGES_DIR):
 
         # Find clusters of adjacent pixels
         clusters = find_clusters(image, color_tolerance=10)
-        all_pixel_clusters[temperature] = clusters
-        cluster_count_per_image[img_file] = len(clusters)
+        significant_clusters = [
+            cluster for cluster in clusters if len(cluster[1]) > 10]
+
+        all_pixel_clusters[temperature] = significant_clusters
+        cluster_count_per_image[img_file] = len(significant_clusters)
         # Plot histogram of cluster sizes
-        plot_cluster_size_histogram(clusters, OUTPUT_DIR_EXTRAS, img_file)
+        plot_cluster_size_histogram(
+            significant_clusters, OUTPUT_DIR_EXTRAS, img_file)
 
         # Create and save a summary image containing all clusters
         create_summary_image(clusters, image.shape,
@@ -222,6 +281,9 @@ for img_file in os.listdir(IMAGES_DIR):
         # Save clusters as images
         save_clusters_as_images(
             clusters, OUTPUT_DIR_EXTRAS, f"{img_file}", image.shape)
+
+        small_clusters = [c for c in clusters if len(c[1]) <= 10]
+        print(f"Number of small clusters: {len(small_clusters)}")
 
         # Calculate Local Binary Patterns
         lbp_image = local_binary_pattern(image)
@@ -235,5 +297,8 @@ for img_file in os.listdir(IMAGES_DIR):
                           OUTPUT_DIR_EXTRAS, f"{img_file}")
 
 plot_cluster_count(cluster_count_per_image, OUTPUT_DIR_EXTRAS)
+plot_number_of_clusters(cluster_count_per_image, OUTPUT_DIR_EXTRAS)
+plot_aggregated_pixel_count_in_clusters(
+    significant_clusters, OUTPUT_DIR_EXTRAS, img_file)
 
 print("Image analysis and data saving complete.")
